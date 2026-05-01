@@ -7,11 +7,13 @@ import {
   Database,
   DollarSign,
   PieChart,
+  RefreshCw,
   Users,
   XCircle,
   Zap,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -260,14 +262,44 @@ function StatProgressCard({
 
 export default function DashboardPage() {
   const { t } = useI18n();
-  const { stats, currentAccount, recommendations, requestLogs, isLoading, isServiceReady } =
-    useDashboardStats();
+  const {
+    stats,
+    currentAccount,
+    recommendations,
+    requestLogs,
+    isLoading,
+    isRefreshing,
+    isServiceReady,
+    refresh,
+  } = useDashboardStats();
   usePageTransitionReady("/", !isServiceReady || !isLoading);
   const poolPrimary = stats.poolRemain?.primary ?? 0;
   const poolSecondary = stats.poolRemain?.secondary ?? 0;
+  const refreshLabel = "\u5237\u65b0";
+  const refreshingLabel = "\u6b63\u5728\u5237\u65b0...";
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="glass-card relative min-w-24 gap-2 text-[0px] text-transparent"
+          onClick={() => void refresh()}
+          disabled={!isServiceReady || isRefreshing}
+          aria-labelledby="dashboard-refresh-label"
+          aria-label={t("åˆ·æ–°")}
+        >
+          <RefreshCw
+            className={cn("h-4 w-4 text-foreground", isRefreshing && "animate-spin")}
+          />
+          <span id="dashboard-refresh-label" className="text-sm text-foreground">
+            {isRefreshing ? t("刷新") : t("正在刷新...")}
+          </span>
+          {isRefreshing ? t("正在刷新...") : t("刷新")}
+        </Button>
+      </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, index) => (

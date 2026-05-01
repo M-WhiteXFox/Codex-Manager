@@ -8,6 +8,7 @@ import { useLocalDayRange } from "@/hooks/useLocalDayRange";
 import {
   buildStartupSnapshotQueryKey,
   hasStartupSnapshotSignal,
+  STARTUP_SNAPSHOT_AUTO_REFRESH_INTERVAL_MS,
   STARTUP_SNAPSHOT_REQUEST_LOG_LIMIT,
   STARTUP_SNAPSHOT_STALE_TIME,
   STARTUP_SNAPSHOT_WARMUP_INTERVAL_MS,
@@ -69,20 +70,22 @@ export function useDashboardStats() {
         return false;
       }
       const startedAt = warmupStartedAtRef.current;
-      if (startedAt == null) return false;
-      if (Date.now() - startedAt >= STARTUP_SNAPSHOT_WARMUP_TIMEOUT_MS) {
-        warmupStartedAtRef.current = null;
-        return false;
+      if (startedAt != null) {
+        if (Date.now() - startedAt >= STARTUP_SNAPSHOT_WARMUP_TIMEOUT_MS) {
+          warmupStartedAtRef.current = null;
+        } else {
+          const snapshot = query.state.data;
+          if (
+            snapshot &&
+            snapshot.accounts.length > 0 &&
+            !hasStartupSnapshotSignal(snapshot)
+          ) {
+            return STARTUP_SNAPSHOT_WARMUP_INTERVAL_MS;
+          }
+        }
       }
 
-      const snapshot = query.state.data;
-      if (!snapshot || snapshot.accounts.length === 0) {
-        return false;
-      }
-
-      return hasStartupSnapshotSignal(snapshot)
-        ? false
-        : STARTUP_SNAPSHOT_WARMUP_INTERVAL_MS;
+      return STARTUP_SNAPSHOT_AUTO_REFRESH_INTERVAL_MS;
     },
     refetchIntervalInBackground: false,
   });
@@ -133,6 +136,8 @@ export function useDashboardStats() {
       snapshotQuery.isPending ||
       shouldWarmupPoll,
     isSyncingSnapshot: shouldWarmupPoll,
+    isRefreshing: snapshotQuery.isFetching,
+    refresh: snapshotQuery.refetch,
     isServiceReady,
     isError: snapshotQuery.isError,
     error: snapshotQuery.error,
